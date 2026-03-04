@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from agents.base_agent import get_supabase
+from orchestrator.db import get_supabase
 
 logger = logging.getLogger(__name__)
 

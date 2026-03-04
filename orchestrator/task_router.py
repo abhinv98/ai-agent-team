@@ -5,7 +5,7 @@ import asyncio
 import logging
 from typing import Optional
 
-from agents.base_agent import get_supabase
+from orchestrator.db import get_supabase
 from orchestrator import research_engine
 from orchestrator.knowledge_base import store_research_finding
 

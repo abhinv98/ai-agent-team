@@ -4,7 +4,7 @@ import json
 
 from slack_sdk import WebClient
 
-from agents.base_agent import get_supabase
+from orchestrator.db import get_supabase
 from orchestrator.task_router import create_tasks_for_campaign, get_unblocked_tasks, trigger_agent_for_task
 from orchestrator.workflow_engine import WORKFLOW_TEMPLATES, detect_workflow_type
 from orchestrator.cost_tracker import get_daily_cost

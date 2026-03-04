@@ -1,5 +1,4 @@
 from agents.base_agent import BaseAgent
-from orchestrator.cost_tracker import get_daily_cost, check_budget_alert
 
 
 class KavyaPM(BaseAgent):
@@ -27,6 +26,7 @@ class KavyaPM(BaseAgent):
     )
 
     def generate_standup(self, tasks_summary: dict, campaign_count: int = 0) -> dict:
+        from orchestrator.cost_tracker import get_daily_cost, check_budget_alert
         cost_data = get_daily_cost()
         alerts = check_budget_alert()
 

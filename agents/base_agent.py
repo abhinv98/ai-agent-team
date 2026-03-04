@@ -5,7 +5,6 @@ from decimal import Decimal
 from typing import Optional
 
 import anthropic
-from supabase import create_client, Client
 
 logger = logging.getLogger(__name__)
 
@@ -14,21 +13,10 @@ MODEL_PRICING = {
     "claude-haiku-4-5-20251001": {"input": 1.0, "output": 5.0,  "cache_read": 0.10, "cache_write": 1.25},
 }
 
-_supabase: Optional[Client] = None
 
-
-def get_supabase() -> Client:
-    global _supabase
-    if _supabase is None:
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_SERVICE_KEY")
-        if not url or not key:
-            raise RuntimeError(
-                "SUPABASE_URL and SUPABASE_SERVICE_KEY must be set. "
-                "On Railway, add them in Settings → Variables."
-            )
-        _supabase = create_client(url, key)
-    return _supabase
+def get_supabase():
+    from orchestrator.db import get_supabase as _get
+    return _get()
 
 
 class BaseAgent:

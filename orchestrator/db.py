@@ -1,12 +1,18 @@
+"""Shared Supabase client — avoids circular imports between agents/ and orchestrator/."""
 import os
+import logging
+from typing import Optional
+
 from supabase import create_client, Client
 
-_client: Client | None = None
+logger = logging.getLogger(__name__)
+
+_supabase: Optional[Client] = None
 
 
-def get_db() -> Client:
-    global _client
-    if _client is None:
+def get_supabase() -> Client:
+    global _supabase
+    if _supabase is None:
         url = os.environ.get("SUPABASE_URL")
         key = os.environ.get("SUPABASE_SERVICE_KEY")
         if not url or not key:
@@ -14,5 +20,5 @@ def get_db() -> Client:
                 "SUPABASE_URL and SUPABASE_SERVICE_KEY must be set. "
                 "On Railway, add them in Settings → Variables."
             )
-        _client = create_client(url, key)
-    return _client
+        _supabase = create_client(url, key)
+    return _supabase
