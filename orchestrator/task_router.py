@@ -182,9 +182,16 @@ def _post_result_to_slack(task: dict, result: dict):
 
         client = WebClient(token=token)
         updated_task = get_task(task["id"]) or task
+
+        logger.info(
+            "Posting %s output to Slack (agent=%s, output_len=%d)",
+            task.get("title", "?"), task.get("assigned_agent", "?"),
+            len(updated_task.get("output_content", "")),
+        )
         post_for_approval(client, updated_task)
+        logger.info("Successfully posted %s to Slack", task.get("title", "?"))
     except Exception as e:
-        logger.error("Failed to post task %s to Slack: %s", task.get("id"), e)
+        logger.error("Failed to post task %s to Slack: %s", task.get("id"), e, exc_info=True)
 
 
 async def process_approved_task(task_id: str):
