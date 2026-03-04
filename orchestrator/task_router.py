@@ -103,6 +103,11 @@ def get_unblocked_tasks(campaign_id: str) -> list[dict]:
 
 async def trigger_agent_for_task(task: dict, upstream_outputs: Optional[dict] = None) -> dict:
     """Execute the assigned agent for a task, passing upstream context."""
+    from orchestrator.killswitch import is_paused
+    if is_paused():
+        logger.info("Skipping task %s — agents are paused", task.get("title"))
+        return {"text": "[Paused] Agents stopped.", "usage": {}, "cost": {}}
+
     agent_name = task["assigned_agent"]
     agent = get_agent(agent_name)
     if not agent:

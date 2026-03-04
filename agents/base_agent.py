@@ -50,6 +50,17 @@ class BaseAgent:
         campaign_id: Optional[str] = None,
         use_thinking: bool = False,
     ) -> dict:
+        from orchestrator.killswitch import is_paused
+        if is_paused():
+            logger.info("Agent %s blocked by kill switch", self.name)
+            self._log_activity("blocked", "Paused by kill switch", task_id)
+            return {
+                "text": "[Paused] Agents are currently stopped. Resume from the dashboard to continue.",
+                "usage": {"input_tokens": 0, "output_tokens": 0},
+                "cost": {},
+                "model": self.model,
+            }
+
         messages = list(history or [])
         messages.append({"role": "user", "content": user_message})
 

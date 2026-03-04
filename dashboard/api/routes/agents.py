@@ -1,9 +1,15 @@
 from fastapi import APIRouter, Query
+from pydantic import BaseModel
 
 from dashboard.api.database import get_db
 from slack_app.channel_config import AGENT_DISPLAY
+from orchestrator.killswitch import is_paused, set_paused
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
+
+
+class PauseRequest(BaseModel):
+    paused: bool
 
 
 @router.get("/status")
@@ -43,13 +49,23 @@ def agent_status():
         statuses.append({
             "name": name,
             "display_name": display["name"],
-            "emoji": display["emoji"],
             "color": display["color"],
             "status": status,
             "current_task": current_task,
         })
 
     return statuses
+
+
+@router.get("/paused")
+def get_paused():
+    return {"paused": is_paused()}
+
+
+@router.post("/paused")
+def set_paused_state(req: PauseRequest):
+    set_paused(req.paused)
+    return {"paused": is_paused()}
 
 
 @router.get("/activity")
