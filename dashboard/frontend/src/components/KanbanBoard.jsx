@@ -3,11 +3,11 @@ import { DragDropContext } from '@hello-pangea/dnd'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import KanbanColumn from './KanbanColumn'
 import { COLUMNS, AGENTS } from '../utils/constants'
-import { usePolling } from '../hooks/usePolling'
+import { useRealtime } from '../hooks/useRealtime'
 import { useApi } from '../hooks/useApi'
 
 export default function KanbanBoard() {
-  const { data: board, refresh } = usePolling('/tasks/board', 10000)
+  const { data: board, refresh } = useRealtime('/tasks/board', 'tasks', 10000)
   const { patch } = useApi()
   const [filterAgent, setFilterAgent] = useState('all')
 

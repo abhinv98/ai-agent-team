@@ -1,8 +1,8 @@
 import { AGENTS } from '../utils/constants'
-import { usePolling } from '../hooks/usePolling'
+import { useRealtime } from '../hooks/useRealtime'
 
 export default function AgentActivityFeed() {
-  const { data } = usePolling('/agents/activity?limit=15', 10000)
+  const { data } = useRealtime('/agents/activity?limit=15', 'agent_activity', 10000)
   const activities = data || []
 
   return (

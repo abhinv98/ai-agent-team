@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { usePolling } from '../hooks/usePolling'
+import { useRealtime } from '../hooks/useRealtime'
 import { useApi } from '../hooks/useApi'
 import { AGENTS } from '../utils/constants'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ const statusVariant = {
 }
 
 export default function CampaignList() {
-  const { data: campaigns, refresh } = usePolling('/campaigns', 15000)
+  const { data: campaigns, refresh } = useRealtime('/campaigns', ['campaigns', 'tasks'], 15000)
   const { post } = useApi()
   const [name, setName] = useState('')
   const [brief, setBrief] = useState('')

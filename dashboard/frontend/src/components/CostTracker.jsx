@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { usePolling } from '../hooks/usePolling'
+import { useRealtime } from '../hooks/useRealtime'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import AgentCostCard from './AgentCostCard'
@@ -7,8 +7,8 @@ import { StackedCostChart, CumulativeCostChart } from './CostChart'
 
 export default function CostTracker() {
   const [days, setDays] = useState(7)
-  const { data: summary } = usePolling('/costs/summary', 30000)
-  const { data: daily } = usePolling(`/costs/daily?days=${days}`, 30000)
+  const { data: summary } = useRealtime('/costs/summary', 'agent_costs', 30000)
+  const { data: daily } = useRealtime(`/costs/daily?days=${days}`, 'agent_costs', 30000)
 
   const agents = summary || []
 

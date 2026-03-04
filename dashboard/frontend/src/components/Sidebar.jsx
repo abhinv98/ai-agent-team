@@ -1,5 +1,5 @@
 import { AGENTS } from '../utils/constants'
-import { usePolling } from '../hooks/usePolling'
+import { useRealtime } from '../hooks/useRealtime'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -15,7 +15,7 @@ const statusDot = {
 const statusLabel = { idle: 'Idle', working: 'Working', waiting: 'Waiting for approval', error: 'Error' }
 
 export default function Sidebar() {
-  const { data: statuses } = usePolling('/agents/status', 10000)
+  const { data: statuses } = useRealtime('/agents/status', 'agent_activity', 10000)
   const agentStatuses = statuses || []
 
   return (
