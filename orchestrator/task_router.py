@@ -6,27 +6,35 @@ import logging
 from typing import Optional
 
 from agents.base_agent import get_supabase
-from agents import (
-    MayaStrategist, AnanyaCopywriter, PriyaSEO,
-    RameshSocial, SubodhAnalyst, KavyaPM,
-)
 from orchestrator import research_engine
 from orchestrator.knowledge_base import store_research_finding
 
 logger = logging.getLogger(__name__)
 
-AGENT_INSTANCES = {
-    "maya": MayaStrategist(),
-    "ananya": AnanyaCopywriter(),
-    "priya": PriyaSEO(),
-    "ramesh": RameshSocial(),
-    "subodh": SubodhAnalyst(),
-    "kavya": KavyaPM(),
-}
+_agent_instances = {}
 
 
 def get_agent(name: str):
-    return AGENT_INSTANCES.get(name)
+    if name not in _agent_instances:
+        _init_agents()
+    return _agent_instances.get(name)
+
+
+def _init_agents():
+    if _agent_instances:
+        return
+    from agents import (
+        MayaStrategist, AnanyaCopywriter, PriyaSEO,
+        RameshSocial, SubodhAnalyst, KavyaPM,
+    )
+    _agent_instances.update({
+        "maya": MayaStrategist(),
+        "ananya": AnanyaCopywriter(),
+        "priya": PriyaSEO(),
+        "ramesh": RameshSocial(),
+        "subodh": SubodhAnalyst(),
+        "kavya": KavyaPM(),
+    })
 
 
 def get_tasks_for_campaign(campaign_id: str) -> list[dict]:

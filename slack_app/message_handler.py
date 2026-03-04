@@ -4,7 +4,6 @@ import json
 
 from slack_sdk import WebClient
 
-from agents import MayaStrategist
 from agents.base_agent import get_supabase
 from orchestrator.task_router import create_tasks_for_campaign, get_unblocked_tasks, trigger_agent_for_task
 from orchestrator.workflow_engine import WORKFLOW_TEMPLATES, detect_workflow_type
@@ -14,7 +13,15 @@ from slack_app.approval_handler import post_for_approval
 
 logger = logging.getLogger(__name__)
 
-maya = MayaStrategist()
+_maya = None
+
+
+def _get_maya():
+    global _maya
+    if _maya is None:
+        from agents import MayaStrategist
+        _maya = MayaStrategist()
+    return _maya
 
 
 def handle_campaign_command(ack, command, client: WebClient):
@@ -101,6 +108,7 @@ async def _launch_campaign(brief: str, channel: str, client: WebClient):
     campaign = campaign_result.data[0]
     campaign_id = campaign["id"]
 
+    maya = _get_maya()
     plan_result = maya.plan_campaign(brief, campaign_id=campaign_id)
     plan_text = plan_result.get("text", "")
 

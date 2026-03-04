@@ -20,10 +20,14 @@ _supabase: Optional[Client] = None
 def get_supabase() -> Client:
     global _supabase
     if _supabase is None:
-        _supabase = create_client(
-            os.environ["SUPABASE_URL"],
-            os.environ["SUPABASE_SERVICE_KEY"],
-        )
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_SERVICE_KEY")
+        if not url or not key:
+            raise RuntimeError(
+                "SUPABASE_URL and SUPABASE_SERVICE_KEY must be set. "
+                "On Railway, add them in Settings → Variables."
+            )
+        _supabase = create_client(url, key)
     return _supabase
 
 
@@ -39,7 +43,13 @@ class BaseAgent:
     BACKOFF_BASE = 2
 
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "ANTHROPIC_API_KEY must be set. "
+                "On Railway, add it in Settings → Variables."
+            )
+        self.client = anthropic.Anthropic(api_key=api_key)
         self.db = get_supabase()
 
     # ── core API call with cost logging + retry ──
