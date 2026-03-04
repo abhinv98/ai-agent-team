@@ -16,7 +16,7 @@ export default function App() {
         <Header />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-4">
             <TabsContent value="kanban" className="mt-0 h-full"><KanbanBoard /></TabsContent>
             <TabsContent value="costs" className="mt-0"><CostTracker /></TabsContent>
             <TabsContent value="campaigns" className="mt-0"><CampaignList /></TabsContent>

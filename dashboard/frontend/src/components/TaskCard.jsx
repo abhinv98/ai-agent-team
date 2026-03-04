@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Separator } from '@/components/ui/separator'
 import { AGENTS } from '../utils/constants'
 
 export default function TaskCard({ task, provided }) {
   const [expanded, setExpanded] = useState(false)
-  const agent = AGENTS[task.assigned_agent] || { color: '#888', name: task.assigned_agent, bg: 'rgba(0,0,0,0.04)' }
+  const agent = AGENTS[task.assigned_agent] || { color: '#666', name: task.assigned_agent, bg: '#f5f3f0' }
   const campaign = task.campaigns?.name || ''
   const age = task.updated_at ? timeAgo(new Date(task.updated_at)) : ''
 
@@ -18,32 +17,30 @@ export default function TaskCard({ task, provided }) {
       {...provided.dragHandleProps}
     >
       <Collapsible open={expanded} onOpenChange={setExpanded}>
-        <Card className="mb-2 bg-surface-100 border-border/50 hover:border-border transition-colors cursor-grab active:cursor-grabbing">
+        <Card className="mb-1.5 bg-white border-border/40 hover:border-border shadow-sm hover:shadow transition-all cursor-grab active:cursor-grabbing">
           <CollapsibleTrigger asChild>
-            <CardContent className="p-3">
-              <div className="flex items-start gap-2">
-                <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: agent.color }} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground leading-tight">{task.title}</p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <Badge variant="outline" className="text-xs px-1.5 py-0 border-0 font-normal" style={{ backgroundColor: agent.bg, color: agent.color }}>
-                      {agent.name.split('—')[0].trim()}
-                    </Badge>
-                    {campaign && <span className="text-xs text-muted-foreground truncate">{campaign}</span>}
-                  </div>
-                  {age && <p className="text-xs text-muted-foreground/60 mt-1">{age}</p>}
-                </div>
+            <CardContent className="p-2">
+              <p className="text-xs font-medium text-foreground leading-snug line-clamp-2">{task.title}</p>
+              <div className="flex items-center gap-1 mt-1">
+                <span
+                  className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: agent.bg, color: agent.color }}
+                >
+                  {agent.name.split('—')[0].trim()}
+                </span>
+                {age && <span className="text-[10px] text-muted-foreground ml-auto">{age}</span>}
               </div>
+              {campaign && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{campaign}</p>}
             </CardContent>
           </CollapsibleTrigger>
           <CollapsibleContent>
             {task.output_content && (
-              <div className="px-3 pb-3">
-                <Separator className="mb-3" />
-                <p className="text-xs text-muted-foreground whitespace-pre-wrap max-h-48 overflow-auto">{task.output_content.slice(0, 1000)}</p>
+              <div className="px-2 pb-2">
+                <Separator className="mb-2" />
+                <p className="text-[11px] text-foreground/70 whitespace-pre-wrap max-h-36 overflow-auto leading-relaxed">{task.output_content.slice(0, 800)}</p>
                 {task.feedback && (
-                  <div className="mt-2 p-2 bg-yellow-900/20 rounded-md border border-yellow-800/30">
-                    <p className="text-xs text-yellow-300">Feedback: {task.feedback}</p>
+                  <div className="mt-1.5 p-1.5 bg-amber-50 rounded border border-amber-200">
+                    <p className="text-[10px] text-amber-800">Feedback: {task.feedback}</p>
                   </div>
                 )}
               </div>
@@ -57,10 +54,10 @@ export default function TaskCard({ task, provided }) {
 
 function timeAgo(date) {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (seconds < 60) return 'just now'
+  if (seconds < 60) return 'now'
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 60) return `${minutes}m`
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
+  if (hours < 24) return `${hours}h`
+  return `${Math.floor(hours / 24)}d`
 }

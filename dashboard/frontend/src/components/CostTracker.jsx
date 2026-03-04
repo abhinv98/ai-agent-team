@@ -13,15 +13,16 @@ export default function CostTracker() {
   const agents = summary || []
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">Cost Tracker</h1>
+        <h1 className="text-sm font-semibold text-foreground">Cost Tracker</h1>
         <div className="flex gap-1">
           {[7, 14, 30].map(d => (
             <Button
               key={d}
               variant={days === d ? 'secondary' : 'ghost'}
               size="sm"
+              className="text-xs"
               onClick={() => setDays(d)}
             >
               {d}d
@@ -33,22 +34,22 @@ export default function CostTracker() {
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         {agents.map(a => <AgentCostCard key={a.agent_name} data={a} />)}
         {agents.length === 0 && (
-          <div className="col-span-full text-center text-muted-foreground py-8">No cost data recorded yet</div>
+          <div className="col-span-full text-center text-muted-foreground py-8 text-sm">No cost data recorded yet</div>
         )}
       </div>
 
-      <Card className="bg-surface-50 border-border/50">
+      <Card className="bg-white border-border/60">
         <CardHeader>
-          <CardTitle className="text-muted-foreground">Daily Cost by Agent</CardTitle>
+          <CardTitle className="text-sm font-medium text-foreground">Daily Cost by Agent</CardTitle>
         </CardHeader>
         <CardContent>
           <StackedCostChart data={daily} />
         </CardContent>
       </Card>
 
-      <Card className="bg-surface-50 border-border/50">
+      <Card className="bg-white border-border/60">
         <CardHeader>
-          <CardTitle className="text-muted-foreground">Cumulative Spend</CardTitle>
+          <CardTitle className="text-sm font-medium text-foreground">Cumulative Spend</CardTitle>
         </CardHeader>
         <CardContent>
           <CumulativeCostChart data={daily} />

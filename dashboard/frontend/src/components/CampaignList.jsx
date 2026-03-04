@@ -47,42 +47,42 @@ export default function CampaignList() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-lg font-bold">Campaigns</h1>
+    <div className="space-y-5">
+      <h1 className="text-sm font-semibold text-foreground">Campaigns</h1>
 
-      <Card className="bg-surface-50 border-border/50">
+      <Card className="bg-white border-border/60">
         <CardContent className="p-4">
           <form onSubmit={handleCreate} className="flex gap-3">
             <Input
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Campaign name"
-              className="flex-1 bg-surface-200"
+              className="flex-1 bg-surface-50 text-foreground"
             />
             <Input
               value={brief}
               onChange={e => setBrief(e.target.value)}
               placeholder="Brief (optional)"
-              className="flex-[2] bg-surface-200"
+              className="flex-[2] bg-surface-50 text-foreground"
             />
             <Button type="submit">Create</Button>
           </form>
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {(campaigns || []).map(c => (
           <Collapsible key={c.id} open={expandedId === c.id} onOpenChange={() => toggleExpand(c.id)}>
-            <Card className="bg-surface-50 border-border/50 overflow-hidden">
+            <Card className="bg-white border-border/60 overflow-hidden">
               <CollapsibleTrigger asChild>
-                <button className="w-full flex items-center gap-4 p-4 text-left hover:bg-accent transition-colors">
+                <button className="w-full flex items-center gap-4 p-4 text-left hover:bg-accent/40 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
                     {c.brief && <p className="text-xs text-muted-foreground truncate mt-0.5">{c.brief}</p>}
                   </div>
                   <Badge variant={statusVariant[c.status] || 'default'}>{c.status}</Badge>
                   <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
-                  <span className="text-muted-foreground">{expandedId === c.id ? '▾' : '▸'}</span>
+                  <span className="text-muted-foreground text-xs">{expandedId === c.id ? '▾' : '▸'}</span>
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent>
@@ -93,14 +93,14 @@ export default function CampaignList() {
                       <span className="text-sm text-muted-foreground">Total Cost: <strong className="text-foreground">${(expandedData.total_cost || 0).toFixed(4)}</strong></span>
                       <span className="text-sm text-muted-foreground">Tasks: <strong className="text-foreground">{(expandedData.tasks || []).length}</strong></span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {(expandedData.tasks || []).map(t => {
-                        const agent = AGENTS[t.assigned_agent] || { color: '#888' }
+                        const agent = AGENTS[t.assigned_agent] || { color: '#666' }
                         return (
-                          <div key={t.id} className="flex items-center gap-3 px-3 py-2 bg-surface-200 rounded-md">
+                          <div key={t.id} className="flex items-center gap-3 px-3 py-2 bg-surface-50 rounded-md">
                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: agent.color }} />
-                            <span className="text-sm flex-1 truncate">{t.title}</span>
-                            <Badge variant="outline" className="text-xs">{t.status}</Badge>
+                            <span className="text-sm text-foreground flex-1 truncate">{t.title}</span>
+                            <Badge variant="outline" className="text-xs text-foreground">{t.status}</Badge>
                           </div>
                         )
                       })}
@@ -112,7 +112,7 @@ export default function CampaignList() {
           </Collapsible>
         ))}
         {(!campaigns || campaigns.length === 0) && (
-          <div className="text-center text-muted-foreground py-12">No campaigns yet. Create one above or use /campaign in Slack.</div>
+          <div className="text-center text-muted-foreground py-12 text-sm">No campaigns yet. Create one above or use /campaign in Slack.</div>
         )}
       </div>
     </div>

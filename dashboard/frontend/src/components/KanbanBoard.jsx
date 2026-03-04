@@ -27,10 +27,10 @@ export default function KanbanBoard() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 mb-4 shrink-0">
-        <h1 className="text-lg font-bold">Kanban Board</h1>
+      <div className="flex items-center gap-3 mb-3 shrink-0">
+        <h1 className="text-sm font-semibold text-foreground">Tasks</h1>
         <Select value={filterAgent} onValueChange={setFilterAgent}>
-          <SelectTrigger className="w-[200px] h-9">
+          <SelectTrigger className="w-[160px] h-8 text-xs">
             <SelectValue placeholder="All Agents" />
           </SelectTrigger>
           <SelectContent>
@@ -42,7 +42,7 @@ export default function KanbanBoard() {
         </Select>
       </div>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto flex-1 pb-4">
+        <div className="grid grid-cols-6 gap-2 flex-1 min-h-0">
           {COLUMNS.map(col => (
             <KanbanColumn
               key={col.id}
