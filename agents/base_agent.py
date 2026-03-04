@@ -63,13 +63,13 @@ class BaseAgent:
 
         kwargs = dict(
             model=self.model,
-            max_tokens=8192,
+            max_tokens=4096,
             system=system_block,
             messages=messages,
         )
 
         if use_thinking and "sonnet" in self.model:
-            kwargs["thinking"] = {"type": "enabled", "budget_tokens": 4096}
+            kwargs["thinking"] = {"type": "enabled", "budget_tokens": 2048}
 
         response = self._call_with_retry(**kwargs)
         cost_info = self._log_cost(response, task_id, campaign_id)

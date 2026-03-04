@@ -3,36 +3,32 @@ from agents.base_agent import BaseAgent
 
 class PriyaSEO(BaseAgent):
     name = "priya"
-    display_name = "Priya (SEO)"
+    display_name = "Priya -- SEO"
     model = "claude-sonnet-4-6"
     slack_channel = "#ai-marketing-team"
-    emoji = "🔍"
 
     system_prompt = (
-        "You are Priya, SEO specialist. Analytical, precise, methodical. "
-        "You speak in data and rankings. Obsessed with search intent and content gaps.\n\n"
-        "CAPABILITIES: Keyword research, newsletter analysis, ad library trend extraction, "
-        "content optimization, meta tags, linking strategies.\n\n"
-        "OUTPUT FORMAT for keyword briefs:\n"
-        "- Primary Keyword (est. volume) | Secondary Keywords (5-10) | Long-tail (5-10)\n"
-        "- Search Intent: informational/transactional/navigational\n"
-        "- Content Angle + Competitor Gaps\n\n"
-        "OUTPUT FORMAT for research briefs:\n"
-        "- Newsletter Trends: top themes, hooks, formats found\n"
-        "- Ad Library Insights: common hooks, CTAs, formats, ad duration signals\n"
-        "- Recommended content direction with evidence\n\n"
-        "RULES:\n"
-        "- Deliver keyword + research briefs BEFORE Ananya writes\n"
-        "- Base recommendations on search intent, not just volume\n"
-        "- Flag keyword cannibalization risks\n"
-        "- Cite specific sources from research data"
+        "You are Priya, SEO specialist. Data-first, concise.\n\n"
+        "KEYWORD BRIEF FORMAT (under 300 words):\n"
+        "Primary: [keyword] ([volume estimate])\n"
+        "Secondary: [5-8 keywords]\n"
+        "Long-tail: [5-8 phrases]\n"
+        "Intent: [informational/transactional/navigational]\n"
+        "Angle: [1-2 sentences on how to rank]\n"
+        "Gaps: [what competitors miss]\n\n"
+        "RESEARCH BRIEF FORMAT (under 400 words):\n"
+        "Newsletter trends: [bullet points]\n"
+        "Ad library signals: [bullet points]\n"
+        "Recommendation: [2-3 sentences]\n\n"
+        "RULES: No essays. Bullet points and tables only. Cite sources. "
+        "Deliver briefs BEFORE content creation."
     )
 
     def keyword_research(
         self, topic: str, research_data: str = "",
         niche: str = "", task_id: str = None, campaign_id: str = None,
     ) -> dict:
-        message = f"Generate a comprehensive keyword research brief for: {topic}"
+        message = f"Keyword brief for: {topic}. Bullets and data only, no prose."
         if research_data:
             message += f"\n\n<research_data>\n{research_data}\n</research_data>"
         return self.call_with_knowledge(
@@ -45,10 +41,9 @@ class PriyaSEO(BaseAgent):
         niche: str = "", task_id: str = None, campaign_id: str = None,
     ) -> dict:
         message = (
-            f"Create a consolidated research brief for: {topic}\n\n"
-            f"<newsletter_research>\n{_summarize(newsletter_data)}\n</newsletter_research>\n\n"
-            f"<ad_library_research>\n{_summarize(ad_data)}\n</ad_library_research>\n\n"
-            "Synthesize into actionable content direction with evidence."
+            f"Research brief for: {topic}. Keep it tight.\n\n"
+            f"<newsletters>\n{_summarize(newsletter_data)}\n</newsletters>\n\n"
+            f"<ad_library>\n{_summarize(ad_data)}\n</ad_library>"
         )
         return self.call_with_knowledge(
             user_message=message, topic=topic, niche=niche,
