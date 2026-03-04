@@ -13,11 +13,11 @@ export default function AgentActivityFeed() {
           <p className="text-xs text-muted-foreground">No activity yet</p>
         )}
         {activities.map((a, i) => {
-          const agent = AGENTS[a.agent_name] || { emoji: '🤖', color: '#888', name: a.agent_name }
+          const agent = AGENTS[a.agent_name] || { color: '#888', name: a.agent_name }
           const time = a.created_at ? new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
           return (
             <div key={a.id || i} className="flex gap-2 text-xs">
-              <span>{agent.emoji}</span>
+              <span className="w-2 h-2 rounded-full mt-1 shrink-0" style={{ backgroundColor: agent.color }} />
               <div className="min-w-0 flex-1">
                 <span style={{ color: agent.color }} className="font-medium">{agent.name.split(' ')[0]}</span>
                 <span className="text-muted-foreground"> {a.action}</span>

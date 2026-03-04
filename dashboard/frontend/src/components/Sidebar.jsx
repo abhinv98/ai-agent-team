@@ -34,7 +34,7 @@ export default function Sidebar() {
                   </TooltipTrigger>
                   <TooltipContent side="right">{statusLabel[st] || 'Idle'}</TooltipContent>
                 </Tooltip>
-                <span className="text-sm">{agent.emoji}</span>
+                <span className="text-sm font-semibold w-5 text-center" style={{ color: agent.color }}>{agent.name.charAt(0)}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate" style={{ color: agent.color }}>{agent.name}</p>
                   {live?.current_task && (

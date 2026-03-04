@@ -163,7 +163,28 @@ async def trigger_agent_for_task(task: dict, upstream_outputs: Optional[dict] = 
         "output_content": result.get("text", "")[:10000],
     })
 
+    _post_result_to_slack(task, result)
+
     return result
+
+
+def _post_result_to_slack(task: dict, result: dict):
+    """Post the completed agent output to Slack for approval."""
+    import os
+    try:
+        from slack_sdk import WebClient
+        from slack_app.approval_handler import post_for_approval
+
+        token = os.environ.get("SLACK_BOT_TOKEN")
+        if not token:
+            logger.warning("SLACK_BOT_TOKEN not set, skipping Slack post")
+            return
+
+        client = WebClient(token=token)
+        updated_task = get_task(task["id"]) or task
+        post_for_approval(client, updated_task)
+    except Exception as e:
+        logger.error("Failed to post task %s to Slack: %s", task.get("id"), e)
 
 
 async def process_approved_task(task_id: str):

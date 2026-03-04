@@ -4,31 +4,31 @@
 
 @layer base {
   :root {
-    --background: 240 15% 5%;
-    --foreground: 220 10% 90%;
-    --card: 240 12% 8%;
-    --card-foreground: 220 10% 90%;
-    --popover: 240 12% 8%;
-    --popover-foreground: 220 10% 90%;
-    --primary: 263 70% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 10% 14%;
-    --secondary-foreground: 220 10% 80%;
-    --muted: 240 10% 14%;
-    --muted-foreground: 220 5% 45%;
-    --accent: 240 10% 16%;
-    --accent-foreground: 220 10% 90%;
-    --destructive: 0 72% 51%;
+    --background: 40 20% 97%;
+    --foreground: 30 10% 15%;
+    --card: 40 25% 99%;
+    --card-foreground: 30 10% 15%;
+    --popover: 40 25% 99%;
+    --popover-foreground: 30 10% 15%;
+    --primary: 30 60% 42%;
+    --primary-foreground: 40 20% 98%;
+    --secondary: 35 15% 92%;
+    --secondary-foreground: 30 10% 30%;
+    --muted: 35 12% 92%;
+    --muted-foreground: 30 8% 50%;
+    --accent: 35 18% 90%;
+    --accent-foreground: 30 10% 20%;
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 20%;
-    --input: 240 6% 20%;
-    --ring: 263 70% 58%;
+    --border: 35 12% 88%;
+    --input: 35 12% 88%;
+    --ring: 30 60% 42%;
     --radius: 0.75rem;
 
-    --surface: 240 15% 5%;
-    --surface-50: 240 12% 10%;
-    --surface-100: 240 12% 13%;
-    --surface-200: 240 11% 16%;
+    --surface: 40 20% 97%;
+    --surface-50: 38 18% 94%;
+    --surface-100: 36 16% 91%;
+    --surface-200: 34 14% 88%;
   }
 }
 
@@ -38,8 +38,8 @@
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: hsl(240 12% 10%); }
-::-webkit-scrollbar-thumb { background: #3a3a4a; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #5a5a6a; }
+::-webkit-scrollbar-track { background: hsl(38 18% 94%); }
+::-webkit-scrollbar-thumb { background: hsl(35 12% 78%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(35 12% 68%); }
 
 body { -webkit-font-smoothing: antialiased; }

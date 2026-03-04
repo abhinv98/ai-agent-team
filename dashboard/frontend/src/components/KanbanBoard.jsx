@@ -36,7 +36,7 @@ export default function KanbanBoard() {
           <SelectContent>
             <SelectItem value="all">All Agents</SelectItem>
             {Object.entries(AGENTS).map(([key, a]) => (
-              <SelectItem key={key} value={key}>{a.emoji} {a.name}</SelectItem>
+              <SelectItem key={key} value={key}>{a.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>

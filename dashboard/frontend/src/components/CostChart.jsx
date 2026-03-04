@@ -9,17 +9,17 @@ export function StackedCostChart({ data }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 6% 20%)" />
-        <XAxis dataKey="date" tick={{ fill: 'hsl(220 5% 45%)', fontSize: 12 }} tickFormatter={d => d?.slice(5)} />
-        <YAxis tick={{ fill: 'hsl(220 5% 45%)', fontSize: 12 }} tickFormatter={v => `$${v.toFixed(2)}`} />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(35 12% 85%)" />
+        <XAxis dataKey="date" tick={{ fill: 'hsl(30 8% 50%)', fontSize: 12 }} tickFormatter={d => d?.slice(5)} />
+        <YAxis tick={{ fill: 'hsl(30 8% 50%)', fontSize: 12 }} tickFormatter={v => `$${v.toFixed(2)}`} />
         <Tooltip
-          contentStyle={{ backgroundColor: 'hsl(240 12% 8%)', border: '1px solid hsl(240 6% 20%)', borderRadius: '8px' }}
-          labelStyle={{ color: '#ccc' }}
+          contentStyle={{ backgroundColor: 'hsl(40 25% 99%)', border: '1px solid hsl(35 12% 88%)', borderRadius: '8px' }}
+          labelStyle={{ color: '#555' }}
           formatter={(v) => [`$${Number(v).toFixed(4)}`, '']}
         />
         <Legend />
         {Object.entries(AGENTS).map(([key, agent]) => (
-          <Bar key={key} dataKey={key} stackId="a" fill={agent.color} name={agent.name.split('(')[0].trim()} />
+          <Bar key={key} dataKey={key} stackId="a" fill={agent.color} name={agent.name.split('—')[0].trim()} />
         ))}
       </BarChart>
     </ResponsiveContainer>
@@ -42,14 +42,14 @@ export function CumulativeCostChart({ data }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={cumData}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(240 6% 20%)" />
-        <XAxis dataKey="date" tick={{ fill: 'hsl(220 5% 45%)', fontSize: 12 }} tickFormatter={d => d?.slice(5)} />
-        <YAxis tick={{ fill: 'hsl(220 5% 45%)', fontSize: 12 }} tickFormatter={v => `$${v.toFixed(2)}`} />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(35 12% 85%)" />
+        <XAxis dataKey="date" tick={{ fill: 'hsl(30 8% 50%)', fontSize: 12 }} tickFormatter={d => d?.slice(5)} />
+        <YAxis tick={{ fill: 'hsl(30 8% 50%)', fontSize: 12 }} tickFormatter={v => `$${v.toFixed(2)}`} />
         <Tooltip
-          contentStyle={{ backgroundColor: 'hsl(240 12% 8%)', border: '1px solid hsl(240 6% 20%)', borderRadius: '8px' }}
+          contentStyle={{ backgroundColor: 'hsl(40 25% 99%)', border: '1px solid hsl(35 12% 88%)', borderRadius: '8px' }}
           formatter={(v) => [`$${Number(v).toFixed(4)}`, 'Cumulative']}
         />
-        <Line type="monotone" dataKey="total" stroke="#8B5CF6" strokeWidth={2} dot={false} />
+        <Line type="monotone" dataKey="total" stroke="#7C5CBF" strokeWidth={2} dot={false} />
       </LineChart>
     </ResponsiveContainer>
   )

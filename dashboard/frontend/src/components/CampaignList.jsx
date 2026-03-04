@@ -95,7 +95,7 @@ export default function CampaignList() {
                     </div>
                     <div className="space-y-2">
                       {(expandedData.tasks || []).map(t => {
-                        const agent = AGENTS[t.assigned_agent] || { emoji: '🤖', color: '#888' }
+                        const agent = AGENTS[t.assigned_agent] || { color: '#888' }
                         return (
                           <div key={t.id} className="flex items-center gap-3 px-3 py-2 bg-surface-200 rounded-md">
                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: agent.color }} />

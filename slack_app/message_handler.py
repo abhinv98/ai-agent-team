@@ -37,7 +37,7 @@ def handle_campaign_command(ack, command, client: WebClient):
 
     client.chat_postMessage(
         channel=command["channel_id"],
-        text=f"🎯 Starting new campaign... Maya is analyzing the brief.",
+        text="Starting new campaign — Maya is analyzing the brief.",
     )
 
     _run_async(_launch_campaign(brief, command["channel_id"], client))
@@ -75,10 +75,10 @@ def handle_costs_command(ack, command, client: WebClient):
     total = sum(c["cost"] for c in costs)
     lines = []
     for c in sorted(costs, key=lambda x: x["cost"], reverse=True):
-        display = AGENT_DISPLAY.get(c["agent_name"], {"emoji": "🤖", "name": c["agent_name"]})
-        lines.append(f"{display['emoji']} {display['name']}: ${c['cost']:.4f} ({c['calls']} calls)")
+        display = AGENT_DISPLAY.get(c["agent_name"], {"name": c["agent_name"]})
+        lines.append(f"  {display['name']}: ${c['cost']:.4f} ({c['calls']} calls)")
 
-    text = f"💰 *Today's API Costs: ${total:.4f}*\n\n" + "\n".join(lines)
+    text = f"*Today's API Costs: ${total:.4f}*\n\n" + "\n".join(lines)
     client.chat_postMessage(channel=command["channel_id"], text=text)
 
 
@@ -89,7 +89,7 @@ def handle_app_mention(event, client: WebClient):
 
     client.chat_postMessage(
         channel=channel,
-        text="🎯 Maya is reviewing your brief...",
+        text="Maya is reviewing your brief...",
         thread_ts=event.get("ts"),
     )
 
@@ -114,7 +114,7 @@ async def _launch_campaign(brief: str, channel: str, client: WebClient):
 
     client.chat_postMessage(
         channel=CHANNEL,
-        text=f"🎯 *Maya's Campaign Plan*\n\n{plan_text[:3000]}",
+        text=f"*Maya's Campaign Plan*\n\n{plan_text[:3000]}",
     )
 
     workflow_type = detect_workflow_type(brief)

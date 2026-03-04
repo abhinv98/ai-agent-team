@@ -11,58 +11,94 @@ from orchestrator.knowledge_base import store_approved_output
 logger = logging.getLogger(__name__)
 
 
+def _format_output_blocks(text: str, max_blocks: int = 8) -> list[dict]:
+    """Split long agent output into structured Slack blocks with markdown sections."""
+    if not text:
+        return [{"type": "section", "text": {"type": "mrkdwn", "text": "_No content generated._"}}]
+
+    sections = text.split("\n\n")
+    blocks = []
+
+    for section in sections:
+        section = section.strip()
+        if not section:
+            continue
+
+        if section.startswith("#"):
+            line = section.split("\n", 1)
+            heading = line[0].lstrip("#").strip()
+            blocks.append({"type": "header", "text": {"type": "plain_text", "text": heading[:150]}})
+            if len(line) > 1 and line[1].strip():
+                blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": line[1].strip()[:3000]}})
+        elif section.startswith("|") and "---" in section:
+            blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": f"```{section[:3000]}```"}})
+        else:
+            md = section.replace("**", "*")
+            blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": md[:3000]}})
+
+        if len(blocks) >= max_blocks:
+            blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": "_...output truncated for display. Full content saved._"}})
+            break
+
+    return blocks or [{"type": "section", "text": {"type": "mrkdwn", "text": text[:3000]}}]
+
+
 def post_for_approval(client: WebClient, task: dict):
-    """Post agent output with approval buttons in the single channel."""
+    """Post agent output with approval buttons in the single channel, well-formatted."""
     agent_name = task["assigned_agent"]
-    display = AGENT_DISPLAY.get(agent_name, {"name": agent_name, "emoji": "🤖"})
+    display = AGENT_DISPLAY.get(agent_name, {"name": agent_name, "color": "#666"})
     output = task.get("output_content", "No content generated.")
-    preview = output[:2000] + ("..." if len(output) > 2000 else "")
     task_payload = json.dumps({"task_id": task["id"], "agent": agent_name})
+
+    blocks = [
+        {
+            "type": "header",
+            "text": {"type": "plain_text", "text": task["title"][:150]},
+        },
+        {
+            "type": "context",
+            "elements": [
+                {"type": "mrkdwn", "text": f"*{display['name']}*  |  Awaiting review"},
+            ],
+        },
+        {"type": "divider"},
+    ]
+
+    blocks.extend(_format_output_blocks(output))
+
+    blocks.append({"type": "divider"})
+    blocks.append({
+        "type": "actions",
+        "block_id": f"approval_{task['id']}",
+        "elements": [
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "Approve"},
+                "style": "primary",
+                "action_id": "approve_task",
+                "value": task_payload,
+            },
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "Request Changes"},
+                "action_id": "request_changes",
+                "value": task_payload,
+            },
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "Reject"},
+                "style": "danger",
+                "action_id": "reject_task",
+                "value": task_payload,
+            },
+        ],
+    })
 
     try:
         result = client.chat_postMessage(
             channel=CHANNEL,
-            text=f"{display['emoji']} {display['name']} completed: {task['title']}",
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {"type": "plain_text", "text": f"{display['emoji']} {task['title']}"},
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*Agent:* {display['emoji']} {display['name']}\n\n{preview}",
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "actions",
-                    "block_id": f"approval_{task['id']}",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {"type": "plain_text", "text": "✅ Approve"},
-                            "style": "primary",
-                            "action_id": "approve_task",
-                            "value": task_payload,
-                        },
-                        {
-                            "type": "button",
-                            "text": {"type": "plain_text", "text": "✏️ Request Changes"},
-                            "action_id": "request_changes",
-                            "value": task_payload,
-                        },
-                        {
-                            "type": "button",
-                            "text": {"type": "plain_text", "text": "❌ Reject"},
-                            "style": "danger",
-                            "action_id": "reject_task",
-                            "value": task_payload,
-                        },
-                    ],
-                },
-            ],
+            text=f"{display['name']} completed: {task['title']}",
+            blocks=blocks,
         )
         if result.get("ts"):
             update_task(task["id"], {"slack_message_ts": result["ts"], "slack_channel": CHANNEL})
@@ -85,7 +121,7 @@ def handle_approve(ack, body, client):
 
     client.chat_postMessage(
         channel=CHANNEL,
-        text=f"✅ *{task['title']}* approved by @{user}",
+        text=f"*{task['title']}* — approved by @{user}",
         thread_ts=task.get("slack_message_ts"),
     )
 
@@ -141,7 +177,7 @@ def handle_feedback_submission(ack, body, client):
 
     client.chat_postMessage(
         channel=CHANNEL,
-        text=f"✏️ Changes requested for *{task['title']}*: {feedback}",
+        text=f"Changes requested for *{task['title']}*:\n> {feedback}",
     )
 
     from orchestrator.task_router import get_agent
@@ -171,11 +207,14 @@ def handle_reject(ack, body, client):
     task_id = payload["task_id"]
     user = body["user"]["username"]
 
+    task = get_task(task_id)
+    title = task["title"] if task else task_id
+
     update_task(task_id, {"status": "done", "feedback": f"Rejected by {user}"})
 
     client.chat_postMessage(
         channel=CHANNEL,
-        text=f"❌ *{payload.get('task_id', 'Task')}* rejected by @{user}",
+        text=f"*{title}* — rejected by @{user}",
     )
 
 

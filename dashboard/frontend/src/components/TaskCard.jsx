@@ -7,7 +7,7 @@ import { AGENTS } from '../utils/constants'
 
 export default function TaskCard({ task, provided }) {
   const [expanded, setExpanded] = useState(false)
-  const agent = AGENTS[task.assigned_agent] || { emoji: '🤖', color: '#888', name: task.assigned_agent, bg: 'rgba(255,255,255,0.05)' }
+  const agent = AGENTS[task.assigned_agent] || { color: '#888', name: task.assigned_agent, bg: 'rgba(0,0,0,0.04)' }
   const campaign = task.campaigns?.name || ''
   const age = task.updated_at ? timeAgo(new Date(task.updated_at)) : ''
 
@@ -27,7 +27,7 @@ export default function TaskCard({ task, provided }) {
                   <p className="text-sm font-medium text-foreground leading-tight">{task.title}</p>
                   <div className="flex items-center gap-2 mt-1.5">
                     <Badge variant="outline" className="text-xs px-1.5 py-0 border-0 font-normal" style={{ backgroundColor: agent.bg, color: agent.color }}>
-                      {agent.emoji} {agent.name.split('(')[0].trim()}
+                      {agent.name.split('—')[0].trim()}
                     </Badge>
                     {campaign && <span className="text-xs text-muted-foreground truncate">{campaign}</span>}
                   </div>

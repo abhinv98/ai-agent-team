@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: 'class',
+  darkMode: 'media',
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
@@ -44,12 +44,12 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        maya: '#8B5CF6',
-        ananya: '#3B82F6',
-        priya: '#10B981',
-        ramesh: '#F59E0B',
-        subodh: '#EF4444',
-        kavya: '#6366F1',
+        maya: '#7C5CBF',
+        ananya: '#4A7FBF',
+        priya: '#3D8B6E',
+        ramesh: '#C47E2A',
+        subodh: '#B85450',
+        kavya: '#5B5FC7',
       },
       borderRadius: {
         lg: 'var(--radius)',
