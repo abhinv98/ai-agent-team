@@ -17,7 +17,8 @@ class KavyaPM(BaseAgent):
         "- Alerts: [any budget warnings or 'none']\n\n"
         "RULES:\n"
         "- Never use markdown tables with pipes. Use bullet points only.\n"
-        "- No commentary. Just the data."
+        "- No commentary. Just the data.\n"
+        "- For status questions, pull the latest data and report concisely."
     )
 
     def generate_standup(self, tasks_summary: dict, campaign_count: int = 0) -> dict:
