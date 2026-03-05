@@ -2,6 +2,7 @@ import json
 import logging
 import asyncio
 import re
+import threading
 
 from slack_sdk import WebClient
 
@@ -280,18 +281,85 @@ def handle_feedback_submission(ack, body, client):
 
     update_task(task_id, {"status": "changes_requested", "feedback": feedback})
 
-    client.chat_postMessage(channel=CHANNEL, text=f"Changes requested for *{task['title']}*:\n> {feedback}")
+    display = AGENT_DISPLAY.get(agent_name, {"name": agent_name})
+    client.chat_postMessage(
+        channel=CHANNEL,
+        text=f"Changes requested for *{task['title']}*:\n> {feedback}\n\n{display['name']} is working on revisions...",
+    )
 
-    from orchestrator.task_router import get_agent
-    agent = get_agent(agent_name)
-    if agent and agent_name == "ananya":
-        result = agent.revise_content(original=task.get("output_content", ""), feedback=feedback, task_id=task_id, campaign_id=task.get("campaign_id"))
-        update_task(task_id, {"status": "pending_review", "output_content": result.get("text", "")})
-        post_for_approval(client, {**task, "output_content": result.get("text", ""), "status": "pending_review"})
-    elif agent:
-        result = agent.call(user_message=f"Revise based on feedback:\n\nOriginal: {task.get('output_content', '')[:3000]}\n\nFeedback: {feedback}", task_id=task_id, campaign_id=task.get("campaign_id"))
-        update_task(task_id, {"status": "pending_review", "output_content": result.get("text", "")})
-        post_for_approval(client, {**task, "output_content": result.get("text", ""), "status": "pending_review"})
+    thread = threading.Thread(
+        target=_run_revision,
+        args=(client, task, agent_name, feedback),
+        daemon=True,
+    )
+    thread.start()
+
+
+def _run_revision(client: WebClient, task: dict, agent_name: str, feedback: str):
+    """Run the agent revision in a background thread so the Slack handler doesn't block."""
+    task_id = task["id"]
+    display = AGENT_DISPLAY.get(agent_name, {"name": agent_name})
+
+    try:
+        from orchestrator.killswitch import is_paused
+        if is_paused():
+            client.chat_postMessage(
+                channel=CHANNEL,
+                text=f"Agents are currently paused. {display['name']} cannot revise right now. Resume from the dashboard to continue.",
+            )
+            return
+
+        from orchestrator.task_router import get_agent
+        agent = get_agent(agent_name)
+        if not agent:
+            logger.error("No agent found for revision: %s", agent_name)
+            client.chat_postMessage(
+                channel=CHANNEL,
+                text=f"Could not find agent '{agent_name}' to process revisions.",
+            )
+            return
+
+        if agent_name == "ananya":
+            result = agent.revise_content(
+                original=task.get("output_content", ""),
+                feedback=feedback,
+                task_id=task_id,
+                campaign_id=task.get("campaign_id"),
+            )
+        else:
+            result = agent.call(
+                user_message=(
+                    f"Revise your previous output based on this feedback. "
+                    f"Return the complete revised version:\n\n"
+                    f"<original>\n{task.get('output_content', '')[:3000]}\n</original>\n\n"
+                    f"<feedback>\n{feedback}\n</feedback>"
+                ),
+                task_id=task_id,
+                campaign_id=task.get("campaign_id"),
+            )
+
+        revised_text = result.get("text", "")
+        if not revised_text or revised_text.startswith("[Paused]"):
+            client.chat_postMessage(
+                channel=CHANNEL,
+                text=f"{display['name']} could not complete the revision. Agents may be paused.",
+            )
+            return
+
+        update_task(task_id, {"status": "pending_review", "output_content": revised_text})
+        updated_task = {**task, "output_content": revised_text, "status": "pending_review"}
+        post_for_approval(client, updated_task)
+        logger.info("Revision posted for task %s by agent %s", task_id, agent_name)
+
+    except Exception as e:
+        logger.error("Revision failed for task %s (agent %s): %s", task_id, agent_name, e, exc_info=True)
+        try:
+            client.chat_postMessage(
+                channel=CHANNEL,
+                text=f"Revision failed for *{task.get('title', task_id)}*. {display['name']} encountered an error. Please try again.",
+            )
+        except Exception:
+            logger.error("Could not post revision failure message to Slack")
 
 
 def handle_reject(ack, body, client):
