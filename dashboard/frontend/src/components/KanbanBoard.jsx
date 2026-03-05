@@ -30,13 +30,13 @@ export default function KanbanBoard() {
       <div className="flex items-center gap-3 mb-3 shrink-0">
         <h1 className="text-sm font-semibold text-foreground">Tasks</h1>
         <Select value={filterAgent} onValueChange={setFilterAgent}>
-          <SelectTrigger className="w-[160px] h-8 text-xs">
+          <SelectTrigger className="w-[180px] h-8 text-xs bg-white border-border text-foreground">
             <SelectValue placeholder="All Agents" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Agents</SelectItem>
+          <SelectContent className="bg-white border-border text-foreground z-[100]">
+            <SelectItem value="all" className="text-foreground text-xs">All Agents</SelectItem>
             {Object.entries(AGENTS).map(([key, a]) => (
-              <SelectItem key={key} value={key}>{a.name}</SelectItem>
+              <SelectItem key={key} value={key} className="text-foreground text-xs">{a.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
