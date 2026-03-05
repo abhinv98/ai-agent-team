@@ -1,6 +1,7 @@
 import json
 import logging
 import asyncio
+import re
 
 from slack_sdk import WebClient
 
@@ -10,24 +11,48 @@ from orchestrator.knowledge_base import store_approved_output
 
 logger = logging.getLogger(__name__)
 
-SLACK_TEXT_LIMIT = 2800
-MAX_BLOCKS = 6
+PREVIEW_CHAR_LIMIT = 2400
+
+_channel_id_cache = {}
 
 
-def _truncate(text: str, limit: int = SLACK_TEXT_LIMIT) -> str:
-    if len(text) <= limit:
-        return text
-    return text[:limit] + "\n\n_...content truncated. Full output attached as file._"
+def _resolve_channel_id(client: WebClient, channel_name: str) -> str:
+    """Resolve #channel-name to a Slack channel ID (cached)."""
+    if channel_name in _channel_id_cache:
+        return _channel_id_cache[channel_name]
+
+    clean = channel_name.lstrip("#")
+    try:
+        cursor = None
+        while True:
+            resp = client.conversations_list(
+                types="public_channel,private_channel",
+                limit=200,
+                cursor=cursor,
+            )
+            for ch in resp.get("channels", []):
+                if ch["name"] == clean:
+                    _channel_id_cache[channel_name] = ch["id"]
+                    return ch["id"]
+            cursor = resp.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+    except Exception as e:
+        logger.error("Failed to resolve channel ID for %s: %s", channel_name, e)
+
+    return channel_name
 
 
 def _upload_full_output(client: WebClient, channel: str, title: str, content: str, thread_ts: str = None):
-    """Upload the full agent output as a text snippet to the channel."""
+    """Upload the full agent output as a text file in the thread."""
+    channel_id = _resolve_channel_id(client, channel)
     try:
         kwargs = {
-            "channels": [channel],
-            "title": f"{title}.md",
+            "channel": channel_id,
+            "title": f"{title}.txt",
             "content": content,
-            "filetype": "markdown",
+            "filename": f"{title[:50]}.txt",
+            "filetype": "text",
         }
         if thread_ts:
             kwargs["thread_ts"] = thread_ts
@@ -36,39 +61,89 @@ def _upload_full_output(client: WebClient, channel: str, title: str, content: st
         logger.error("Failed to upload file for %s: %s", title, e)
 
 
-def _build_preview_blocks(text: str) -> list[dict]:
-    """Build a compact preview of the output for the Slack message body."""
+def _parse_to_rich_text(text: str) -> list[dict]:
+    """Convert agent output to Slack rich_text block elements (sections + bullet lists)."""
     if not text:
-        return [{"type": "section", "text": {"type": "mrkdwn", "text": "_No content generated._"}}]
+        return [{"type": "rich_text_section", "elements": [{"type": "text", "text": "No content generated."}]}]
 
-    preview = _truncate(text.replace("**", "*"), SLACK_TEXT_LIMIT)
-    chunks = []
-    current = ""
+    clean = text.replace("**", "").replace("__", "")
+    clean = re.sub(r"#{1,4}\s*", "", clean)
+    clean = re.sub(r"\|.*?\|", "", clean)
 
-    for line in preview.split("\n"):
-        if len(current) + len(line) + 1 > 2900:
-            chunks.append(current)
-            current = line
+    lines = clean.split("\n")
+    elements = []
+    bullet_buffer = []
+
+    def flush_bullets():
+        if not bullet_buffer:
+            return
+        items = []
+        for b in bullet_buffer:
+            items.append({
+                "type": "rich_text_section",
+                "elements": [{"type": "text", "text": b.strip()}],
+            })
+        elements.append({"type": "rich_text_list", "style": "bullet", "elements": items})
+        bullet_buffer.clear()
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            flush_bullets()
+            continue
+
+        is_bullet = bool(re.match(r"^[-*]\s+", stripped)) or bool(re.match(r"^\d+[\.\)]\s+", stripped))
+
+        if is_bullet:
+            clean_bullet = re.sub(r"^[-*]\s+", "", stripped)
+            clean_bullet = re.sub(r"^\d+[\.\)]\s+", "", clean_bullet)
+            bullet_buffer.append(clean_bullet)
         else:
-            current = f"{current}\n{line}" if current else line
-    if current:
-        chunks.append(current)
+            flush_bullets()
 
-    blocks = []
-    for chunk in chunks[:MAX_BLOCKS]:
-        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": chunk.strip()[:3000]}})
+            if stripped.endswith(":") or len(stripped) < 80 and not stripped.endswith("."):
+                elements.append({
+                    "type": "rich_text_section",
+                    "elements": [{"type": "text", "text": stripped, "style": {"bold": True}}],
+                })
+            else:
+                elements.append({
+                    "type": "rich_text_section",
+                    "elements": [{"type": "text", "text": stripped}],
+                })
 
-    return blocks or [{"type": "section", "text": {"type": "mrkdwn", "text": text[:2900]}}]
+    flush_bullets()
+
+    total_chars = sum(
+        sum(len(el.get("text", "")) for el in elem.get("elements", []))
+        for elem in elements
+    )
+    if total_chars > PREVIEW_CHAR_LIMIT:
+        trimmed = []
+        chars = 0
+        for elem in elements:
+            elem_chars = sum(len(el.get("text", "")) for el in elem.get("elements", []))
+            if chars + elem_chars > PREVIEW_CHAR_LIMIT:
+                trimmed.append({
+                    "type": "rich_text_section",
+                    "elements": [{"type": "text", "text": "\n...content truncated. Full output attached as file.", "style": {"italic": True}}],
+                })
+                break
+            trimmed.append(elem)
+            chars += elem_chars
+        elements = trimmed
+
+    return elements or [{"type": "rich_text_section", "elements": [{"type": "text", "text": text[:2400]}]}]
 
 
 def post_for_approval(client: WebClient, task: dict):
-    """Post agent output with approval buttons. Uploads full content as file if it's long."""
+    """Post agent output with approval buttons. Always uploads full content as file."""
     agent_name = task["assigned_agent"]
     display = AGENT_DISPLAY.get(agent_name, {"name": agent_name, "color": "#666"})
     output = task.get("output_content", "No content generated.")
     task_payload = json.dumps({"task_id": task["id"], "agent": agent_name})
 
-    is_long = len(output) > SLACK_TEXT_LIMIT
+    rich_elements = _parse_to_rich_text(output)
 
     blocks = [
         {"type": "header", "text": {"type": "plain_text", "text": task["title"][:150]}},
@@ -79,37 +154,18 @@ def post_for_approval(client: WebClient, task: dict):
             ],
         },
         {"type": "divider"},
+        {"type": "rich_text", "elements": rich_elements},
+        {"type": "divider"},
+        {
+            "type": "actions",
+            "block_id": f"approval_{task['id']}",
+            "elements": [
+                {"type": "button", "text": {"type": "plain_text", "text": "Approve"}, "style": "primary", "action_id": "approve_task", "value": task_payload},
+                {"type": "button", "text": {"type": "plain_text", "text": "Request Changes"}, "action_id": "request_changes", "value": task_payload},
+                {"type": "button", "text": {"type": "plain_text", "text": "Reject"}, "style": "danger", "action_id": "reject_task", "value": task_payload},
+            ],
+        },
     ]
-
-    blocks.extend(_build_preview_blocks(output))
-
-    blocks.append({"type": "divider"})
-    blocks.append({
-        "type": "actions",
-        "block_id": f"approval_{task['id']}",
-        "elements": [
-            {
-                "type": "button",
-                "text": {"type": "plain_text", "text": "Approve"},
-                "style": "primary",
-                "action_id": "approve_task",
-                "value": task_payload,
-            },
-            {
-                "type": "button",
-                "text": {"type": "plain_text", "text": "Request Changes"},
-                "action_id": "request_changes",
-                "value": task_payload,
-            },
-            {
-                "type": "button",
-                "text": {"type": "plain_text", "text": "Reject"},
-                "style": "danger",
-                "action_id": "reject_task",
-                "value": task_payload,
-            },
-        ],
-    })
 
     try:
         result = client.chat_postMessage(
@@ -120,26 +176,21 @@ def post_for_approval(client: WebClient, task: dict):
         msg_ts = result.get("ts")
         if msg_ts:
             update_task(task["id"], {"slack_message_ts": msg_ts, "slack_channel": CHANNEL})
-
-        if is_long and msg_ts:
             _upload_full_output(client, CHANNEL, task["title"], output, thread_ts=msg_ts)
 
     except Exception as e:
-        logger.error("Failed to post approval to %s: %s — trying minimal fallback", CHANNEL, e)
+        logger.error("Failed to post approval to %s: %s — trying fallback", CHANNEL, e)
         _post_fallback(client, task, display, task_payload, output)
 
 
 def _post_fallback(client: WebClient, task: dict, display: dict, task_payload: str, output: str):
-    """Fallback: post a minimal message + upload the full output as a file."""
+    """Fallback: minimal message + full output as file."""
     try:
         blocks = [
             {"type": "header", "text": {"type": "plain_text", "text": task["title"][:150]}},
-            {
-                "type": "context",
-                "elements": [{"type": "mrkdwn", "text": f"*{display['name']}*  |  Awaiting review"}],
-            },
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": f"*{display['name']}*  |  Awaiting review"}]},
             {"type": "divider"},
-            {"type": "section", "text": {"type": "mrkdwn", "text": "_Output too large for inline display. Full content attached as file below._"}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": "_Full output attached as file in thread._"}},
             {"type": "divider"},
             {
                 "type": "actions",
@@ -152,11 +203,7 @@ def _post_fallback(client: WebClient, task: dict, display: dict, task_payload: s
             },
         ]
 
-        result = client.chat_postMessage(
-            channel=CHANNEL,
-            text=f"{display['name']} completed: {task['title']}",
-            blocks=blocks,
-        )
+        result = client.chat_postMessage(channel=CHANNEL, text=f"{display['name']} completed: {task['title']}", blocks=blocks)
         msg_ts = result.get("ts")
         if msg_ts:
             update_task(task["id"], {"slack_message_ts": msg_ts, "slack_channel": CHANNEL})
@@ -181,7 +228,7 @@ def handle_approve(ack, body, client):
 
     client.chat_postMessage(
         channel=CHANNEL,
-        text=f"*{task['title']}* — approved by @{user}",
+        text=f"*{task['title']}* -- approved by @{user}",
         thread_ts=task.get("slack_message_ts"),
     )
 
@@ -205,19 +252,17 @@ def handle_request_changes(ack, body, client):
             "private_metadata": json.dumps(payload),
             "title": {"type": "plain_text", "text": "Request Changes"},
             "submit": {"type": "plain_text", "text": "Submit"},
-            "blocks": [
-                {
-                    "type": "input",
-                    "block_id": "feedback_block",
-                    "element": {
-                        "type": "plain_text_input",
-                        "action_id": "feedback_input",
-                        "multiline": True,
-                        "placeholder": {"type": "plain_text", "text": "What changes are needed?"},
-                    },
-                    "label": {"type": "plain_text", "text": "Feedback"},
+            "blocks": [{
+                "type": "input",
+                "block_id": "feedback_block",
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "feedback_input",
+                    "multiline": True,
+                    "placeholder": {"type": "plain_text", "text": "What changes are needed?"},
                 },
-            ],
+                "label": {"type": "plain_text", "text": "Feedback"},
+            }],
         },
     )
 
@@ -235,28 +280,16 @@ def handle_feedback_submission(ack, body, client):
 
     update_task(task_id, {"status": "changes_requested", "feedback": feedback})
 
-    client.chat_postMessage(
-        channel=CHANNEL,
-        text=f"Changes requested for *{task['title']}*:\n> {feedback}",
-    )
+    client.chat_postMessage(channel=CHANNEL, text=f"Changes requested for *{task['title']}*:\n> {feedback}")
 
     from orchestrator.task_router import get_agent
     agent = get_agent(agent_name)
     if agent and agent_name == "ananya":
-        result = agent.revise_content(
-            original=task.get("output_content", ""),
-            feedback=feedback,
-            task_id=task_id,
-            campaign_id=task.get("campaign_id"),
-        )
+        result = agent.revise_content(original=task.get("output_content", ""), feedback=feedback, task_id=task_id, campaign_id=task.get("campaign_id"))
         update_task(task_id, {"status": "pending_review", "output_content": result.get("text", "")})
         post_for_approval(client, {**task, "output_content": result.get("text", ""), "status": "pending_review"})
     elif agent:
-        result = agent.call(
-            user_message=f"Revise based on feedback:\n\nOriginal: {task.get('output_content', '')[:3000]}\n\nFeedback: {feedback}",
-            task_id=task_id,
-            campaign_id=task.get("campaign_id"),
-        )
+        result = agent.call(user_message=f"Revise based on feedback:\n\nOriginal: {task.get('output_content', '')[:3000]}\n\nFeedback: {feedback}", task_id=task_id, campaign_id=task.get("campaign_id"))
         update_task(task_id, {"status": "pending_review", "output_content": result.get("text", "")})
         post_for_approval(client, {**task, "output_content": result.get("text", ""), "status": "pending_review"})
 
@@ -269,13 +302,8 @@ def handle_reject(ack, body, client):
 
     task = get_task(task_id)
     title = task["title"] if task else task_id
-
     update_task(task_id, {"status": "done", "feedback": f"Rejected by {user}"})
-
-    client.chat_postMessage(
-        channel=CHANNEL,
-        text=f"*{title}* — rejected by @{user}",
-    )
+    client.chat_postMessage(channel=CHANNEL, text=f"*{title}* -- rejected by @{user}")
 
 
 def _store_to_knowledge(task: dict, approved_by: str):
@@ -285,18 +313,12 @@ def _store_to_knowledge(task: dict, approved_by: str):
         feedback_history = []
         if task.get("feedback"):
             feedback_history.append({"feedback": task["feedback"], "revision": "applied"})
-
         store_approved_output(
-            agent_name=task["assigned_agent"],
-            category=_infer_category(task),
-            topic=task.get("title", ""),
-            approved_output=task["output_content"],
-            task_id=task["id"],
-            campaign_id=task.get("campaign_id"),
-            input_context=task.get("description", ""),
-            feedback_history=feedback_history,
-            tags=_extract_tags(task),
-            approved_by=approved_by,
+            agent_name=task["assigned_agent"], category=_infer_category(task),
+            topic=task.get("title", ""), approved_output=task["output_content"],
+            task_id=task["id"], campaign_id=task.get("campaign_id"),
+            input_context=task.get("description", ""), feedback_history=feedback_history,
+            tags=_extract_tags(task), approved_by=approved_by,
         )
     except Exception as e:
         logger.error("Failed to store knowledge: %s", e)
@@ -305,19 +327,11 @@ def _store_to_knowledge(task: dict, approved_by: str):
 def _infer_category(task: dict) -> str:
     agent = task.get("assigned_agent", "")
     title = task.get("title", "").lower()
-    mapping = {
-        "priya": "keyword_brief",
-        "ananya": "blog_post" if "blog" in title else "newsletter" if "newsletter" in title else "content",
-        "ramesh": "social_calendar",
-        "subodh": "analysis",
-        "maya": "campaign_plan",
-        "kavya": "standup",
-    }
-    return mapping.get(agent, "general")
+    return {"priya": "keyword_brief", "ananya": "blog_post" if "blog" in title else "content",
+            "ramesh": "social_calendar", "subodh": "analysis", "maya": "campaign_plan", "kavya": "standup"}.get(agent, "general")
 
 
 def _extract_tags(task: dict) -> list[str]:
     tags = [task.get("assigned_agent", "")]
-    title_words = task.get("title", "").lower().split()
-    tags.extend([w for w in title_words if len(w) > 3][:5])
+    tags.extend([w for w in task.get("title", "").lower().split() if len(w) > 3][:5])
     return tags

@@ -10,12 +10,14 @@ class KavyaPM(BaseAgent):
     system_prompt = (
         "You are Kavya, project manager. Brief and clear.\n\n"
         "STANDUP FORMAT (under 150 words):\n"
-        "Campaigns: [count]\n"
-        "Done: [n] | In Progress: [n] | Review: [n] | Backlog: [n]\n"
-        "Blockers: [list or 'none']\n"
-        "Cost today: $[total] ([agent]: $[amount] each)\n"
-        "Alerts: [any budget warnings or 'none']\n\n"
-        "No commentary. Just the data."
+        "- Campaigns: [count]\n"
+        "- Done: [n] | In Progress: [n] | Review: [n] | Backlog: [n]\n"
+        "- Blockers: [list or 'none']\n"
+        "- Cost today: $[total] ([agent]: $[amount] each)\n"
+        "- Alerts: [any budget warnings or 'none']\n\n"
+        "RULES:\n"
+        "- Never use markdown tables with pipes. Use bullet points only.\n"
+        "- No commentary. Just the data."
     )
 
     def generate_standup(self, tasks_summary: dict, campaign_count: int = 0) -> dict:

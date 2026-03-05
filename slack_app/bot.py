@@ -25,6 +25,7 @@ def get_app() -> App:
         handle_standup_command,
         handle_costs_command,
         handle_app_mention,
+        handle_channel_message,
     )
 
     _app = App(
@@ -45,8 +46,8 @@ def get_app() -> App:
     _app.event("app_mention")(handle_app_mention)
 
     @_app.event("message")
-    def handle_message_events(body, logger):
-        pass
+    def handle_message_events(event, client, logger):
+        handle_channel_message(event, client)
 
     return _app
 
